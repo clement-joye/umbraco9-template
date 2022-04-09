@@ -1,0 +1,88 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - develop
+
+variables:
+
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  vmImageName: "windows-latest"
+  workingDirectory: "$(System.DefaultWorkingDirectory)"
+
+stages:
+
+  - stage: Build
+    displayName: Build App
+    jobs:
+    - job: Build
+      pool:
+        vmImage: $(vmImageName)
+
+      steps:
+      - task: NuGetToolInstaller@1
+
+      - task: NuGetCommand@2
+        inputs:
+          restoreSolution: '$(solution)'
+
+      - task: VSBuild@1
+        inputs:
+          solution: '$(solution)'
+          msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
+          platform: '$(buildPlatform)'
+          configuration: '$(buildConfiguration)'
+
+      - publish: '$(Build.ArtifactStagingDirectory)'
+        artifact: drop
+        condition: succeeded()
+
+  - stage: 'Deploy'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+    - deployment: Deploy
+      pool:
+          vmImage: $(vmImageName)
+      environment: prod
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: TerraformInstaller@0
+                displayName: Terraform Install
+                inputs:
+                  terraformVersion: "latest"
+              - powershell: |
+                  terraform init \
+                    -backend-config="resource_group_name=($env:backendConfigRgName)" \
+                    -backend-config="storage_account_name=($env:backendConfigStorageAccountName)" \
+                    -backend-config="container_name=($env:backendConfigContainer)" \
+                    -backend-config="key=root.terraform.tfstate"
+                workingDirectory: $(Pipeline.Workspace)/drop/
+                displayName: Terraform Init
+                env:
+                  ARM_ACCESS_KEY: $(backendConfigStorageAccountAccessKey)
+
+              - powershell: |
+                  terraform apply \
+                    -var environment="($env:environment)" \
+                    --auto-approve
+                workingDirectory: $(Pipeline.Workspace)/drop/
+                displayName: Terraform Apply
+                env:
+                  ARM_SUBSCRIPTION_ID: $(azurermSubscriptionId)
+                  ARM_CLIENT_ID: $(azurermClientId)
+                  ARM_CLIENT_SECRET: $(azurermClientSecret)
+                  ARM_TENANT_ID: $(azurermTenantId)
+              - download: current
+                artifact: drop
+              - task: AzureRmWebAppDeployment@4
+                inputs:
+                  ConnectionType: 'AzureRM'
+                  azureSubscription: $(azureSubscriptionName) # Azure Resource Manager connection created during pipeline creation
+                  appType: 'webApp'
+                  WebAppName: $(webAppName)
+                  Package: '$(Pipeline.Workspace)/**/$(projectToDeploy).zip'
