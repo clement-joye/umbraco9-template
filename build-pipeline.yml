@@ -69,6 +69,8 @@ stages:
               - powershell: |
                   terraform apply \
                     -var environment="($env:environment)" \
+                    -var azure_resource_group="($env:azureResourceGroup)" \
+                    -var azure_acronym="($env:azureAcronym)" \
                     --auto-approve
                 workingDirectory: $(Pipeline.Workspace)/drop/
                 displayName: Terraform Apply
@@ -79,10 +81,10 @@ stages:
                   ARM_TENANT_ID: $(azurermTenantId)
               - download: current
                 artifact: drop
-              - task: AzureRmWebAppDeployment@4
-                inputs:
-                  ConnectionType: 'AzureRM'
-                  azureSubscription: $(azureSubscriptionName) # Azure Resource Manager connection created during pipeline creation
-                  appType: 'webApp'
-                  WebAppName: $(webAppName)
-                  Package: '$(Pipeline.Workspace)/**/$(projectToDeploy).zip'
+              # - task: AzureRmWebAppDeployment@4
+              #   inputs:
+              #     ConnectionType: 'AzureRM'
+              #     azureSubscription: $(azureSubscriptionName) # Azure Resource Manager connection created during pipeline creation
+              #     appType: 'webApp'
+              #     WebAppName: $(webAppName)
+              #     Package: '$(Pipeline.Workspace)/**/$(projectToDeploy).zip'
