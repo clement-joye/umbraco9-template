@@ -99,10 +99,10 @@ stages:
                   
               - download: current
                 artifact: drop
-              # - task: AzureRmWebAppDeployment@4
-              #   inputs:
-              #     ConnectionType: 'AzureRM'
-              #     azureSubscription: $(azureSubscriptionName) # Azure Resource Manager connection created during pipeline creation
-              #     appType: 'webApp'
-              #     WebAppName: $(webAppName)
-              #     Package: '$(Pipeline.Workspace)/**/$(projectToDeploy).zip'
+              - task: AzureRmWebAppDeployment@4
+                inputs:
+                  ConnectionType: 'AzureRM'
+                  azureSubscription: $(azureSubscriptionName) # Azure Resource Manager connection created during pipeline creation
+                  appType: 'webApp'
+                  WebAppName: $(webAppName)
+                  Package: '$(Pipeline.Workspace)/**/$(projectToDeploy).zip'
