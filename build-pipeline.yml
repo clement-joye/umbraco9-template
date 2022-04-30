@@ -38,6 +38,12 @@ stages:
       - publish: '$(Build.ArtifactStagingDirectory)'
         artifact: drop
         condition: succeeded()
+      
+      - task: PublishPipelineArtifact@1
+        displayName: Publish Terraform Pipeline Artifact
+        inputs:
+          path: Terraform
+          artifactName: dropTerraform
 
   - stage: 'Deploy'
     dependsOn: Build
@@ -55,30 +61,42 @@ stages:
                 displayName: Terraform Install
                 inputs:
                   terraformVersion: "latest"
-              - powershell: |
+              
+              - download: current
+                artifact: dropTerraform
+
+              - bash: |
                   terraform init \
-                    -backend-config="resource_group_name=($env:backendConfigRgName)" \
-                    -backend-config="storage_account_name=($env:backendConfigStorageAccountName)" \
-                    -backend-config="container_name=($env:backendConfigContainer)" \
+                    -backend-config="resource_group_name=$RG_NAME" \
+                    -backend-config="storage_account_name=$STORAGE_ACCOUNT_NAME" \
+                    -backend-config="container_name=$CONTAINER_NAME" \
                     -backend-config="key=root.terraform.tfstate"
-                workingDirectory: $(Pipeline.Workspace)/drop/
+                workingDirectory: $(Pipeline.Workspace)/dropTerraform/
                 displayName: Terraform Init
                 env:
                   ARM_ACCESS_KEY: $(backendConfigStorageAccountAccessKey)
+                  RG_NAME: $(backendConfigRgName)
+                  STORAGE_ACCOUNT_NAME: $(backendConfigStorageAccountName)
+                  CONTAINER_NAME: $(backendConfigContainer)
 
-              - powershell: |
+              - bash: |
                   terraform apply \
-                    -var environment="($env:environment)" \
-                    -var azure_resource_group="($env:azureResourceGroup)" \
-                    -var azure_acronym="($env:azureAcronym)" \
+                    -var environment="$ENVIRONMENT" \
+                    -var azure_resource_group="$RG_NAME" \
+                    -var azure_acronym="$AZURE_ACRONYM" \
                     --auto-approve
-                workingDirectory: $(Pipeline.Workspace)/drop/
+                workingDirectory: $(Pipeline.Workspace)/dropTerraform/
                 displayName: Terraform Apply
                 env:
+                  ARM_ACCESS_KEY: $(backendConfigStorageAccountAccessKey)
                   ARM_SUBSCRIPTION_ID: $(azurermSubscriptionId)
                   ARM_CLIENT_ID: $(azurermClientId)
                   ARM_CLIENT_SECRET: $(azurermClientSecret)
                   ARM_TENANT_ID: $(azurermTenantId)
+                  ENVIRONMENT: $(environment)
+                  RG_NAME: $(azureResourceGroup)
+                  AZURE_ACRONYM: $(azureAcronym)
+                  
               - download: current
                 artifact: drop
               # - task: AzureRmWebAppDeployment@4

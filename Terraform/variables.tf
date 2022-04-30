@@ -9,3 +9,15 @@ variable "sku_size" {
   type        = string
   default     = "B1"
 }
+
+variable "azure_resource_group" {
+  type  = string
+}
+
+variable "azure_acronym" {
+  type  = string
+}
+
+variable "environment" {
+  type  = string
+}
