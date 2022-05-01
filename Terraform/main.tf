@@ -45,7 +45,7 @@ resource "azurerm_sql_server" "db_server" {
 
 resource "azurerm_sql_database" "db" {
   name                = "db-${var.azure_acronym}-${var.environment}"
-  resource_group_name = azurerm_resource_group.db_server.name
+  resource_group_name = azurerm_resource_group.rg.name
   location            = "North Europe"
   server_name         = azurerm_sql_server.db_server.name
 }
@@ -75,14 +75,13 @@ resource "azurerm_app_service" "app" {
   }
 
   app_settings = {
-    "Umbraco:Storage:AzureBlob:Media:ConnectionString" = azurerm_storage_container.container.secondary_access_key
+    "Umbraco:Storage:AzureBlob:Media:ConnectionString" = "DefaultEndpointsProtocol=https;AccountName=${azurerm_storage_account.sa.name};AccountKey=${azurerm_storage_account.sa.secondary_access_key};EndpointSuffix=core.windows.net" 
   }
 
   connection_string {
     name  = "umbracoDbDSN"
     type  = "SQLServer"
-    value = "Server=some-server.mydomain.com;Integrated Security=SSPI"
-    value = "server=${azurerm_sql_server.dbserver.fully_qualified_domain_name};database=db-${var.azure_acronym}-${var.environment};user id=${var.sql_user};password='${var.sql_password}'"
+    value = "server=${azurerm_sql_server.db_server.fully_qualified_domain_name};database=db-${var.azure_acronym}-${var.environment};user id=${var.sql_username};password='${var.sql_password}'"
   }
 }
 

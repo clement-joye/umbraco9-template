@@ -99,6 +99,8 @@ stages:
                   ENVIRONMENT: $(environment)
                   RG_NAME: $(azureResourceGroup)
                   AZURE_ACRONYM: $(azureAcronym)
+                  SQL_USERNAME: $(sql_username)
+                  SQL_PASSWORD: $(sql_password)
                   
               - download: current
                 artifact: drop

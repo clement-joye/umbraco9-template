@@ -28,4 +28,5 @@ variable "sql_username" {
 
 variable "sql_password" {
   type = string
+  sensitive = true
 }
