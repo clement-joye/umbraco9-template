@@ -75,7 +75,7 @@ resource "azurerm_app_service" "app" {
   }
 
   app_settings = {
-    "SOME_KEY" = "some-value"
+    "Umbraco:Storage:AzureBlob:Media:ConnectionString" = azurerm_storage_container.container.secondary_access_key
   }
 
   connection_string {
