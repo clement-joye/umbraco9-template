@@ -21,3 +21,11 @@ variable "azure_acronym" {
 variable "environment" {
   type  = string
 }
+
+variable "sql_username" {
+  type = string
+}
+
+variable "sql_password" {
+  type = string
+}

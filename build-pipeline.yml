@@ -85,6 +85,8 @@ stages:
                     -var environment="$ENVIRONMENT" \
                     -var azure_resource_group="$RG_NAME" \
                     -var azure_acronym="$AZURE_ACRONYM" \
+                    -var sql_username="$SQL_USERNAME" \
+                    -var sql_password="$SQL_PASSWORD" \
                     --auto-approve
                 workingDirectory: $(Pipeline.Workspace)/dropTerraform/
                 displayName: Terraform Apply

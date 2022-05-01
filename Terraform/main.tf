@@ -28,6 +28,28 @@ resource "azurerm_storage_account" "sa" {
   account_replication_type = "LRS"
 }
 
+resource "azurerm_storage_container" "container" {
+  name                  = "umbraco"
+  storage_account_name  = azurerm_storage_account.sa.name
+  container_access_type = "private"
+}
+
+resource "azurerm_sql_server" "db_server" {
+  name                         = "sql-${var.azure_acronym}-${var.environment}"
+  resource_group_name          = azurerm_resource_group.rg.name
+  location                     = "North Europe"
+  version                      = "12.0"
+  administrator_login          = var.sql_username
+  administrator_login_password = var.sql_password
+}
+
+resource "azurerm_sql_database" "db" {
+  name                = "db-${var.azure_acronym}-${var.environment}"
+  resource_group_name = azurerm_resource_group.db_server.name
+  location            = "North Europe"
+  server_name         = azurerm_sql_server.db_server.name
+}
+
 resource "azurerm_app_service_plan" "plan" {
   name                = "asp-${var.azure_acronym}-${var.environment}"
   location            = azurerm_resource_group.rg.location
@@ -57,9 +79,10 @@ resource "azurerm_app_service" "app" {
   }
 
   connection_string {
-    name  = "Database"
+    name  = "umbracoDbDSN"
     type  = "SQLServer"
     value = "Server=some-server.mydomain.com;Integrated Security=SSPI"
+    value = "server=${azurerm_sql_server.dbserver.fully_qualified_domain_name};database=db-${var.azure_acronym}-${var.environment};user id=${var.sql_user};password='${var.sql_password}'"
   }
 }
 
