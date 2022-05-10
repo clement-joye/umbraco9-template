@@ -1,0 +1,115 @@
+trigger:
+  batch: true
+  branches:
+    include:
+    - release/*
+
+variables:
+
+  solution: '**/*.sln'
+  buildPlatform: 'Any CPU'
+  buildConfiguration: 'Release'
+  vmImageName: "windows-latest"
+  workingDirectory: "$(System.DefaultWorkingDirectory)"
+
+stages:
+
+  - stage: Build
+    displayName: Build App
+    jobs:
+    - job: Build
+      pool:
+        vmImage: $(vmImageName)
+
+      steps:
+      - task: NuGetToolInstaller@1
+
+      - task: NuGetCommand@2
+        inputs:
+          restoreSolution: '$(solution)'
+
+      - task: VSBuild@1
+        inputs:
+          solution: '$(solution)'
+          msbuildArgs: '/p:DeployOnBuild=true /p:WebPublishMethod=Package /p:PackageAsSingleFile=true /p:SkipInvalidConfigurations=true /p:PackageLocation="$(build.artifactStagingDirectory)"'
+          platform: '$(buildPlatform)'
+          configuration: '$(buildConfiguration)'
+
+      - publish: '$(Build.ArtifactStagingDirectory)'
+        artifact: drop
+        condition: succeeded()
+      
+      - task: PublishPipelineArtifact@1
+        displayName: Publish Terraform Pipeline Artifact
+        inputs:
+          path: Terraform
+          artifactName: dropTerraform
+
+  - stage: 'Deploy'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+    - deployment: Deploy
+      pool:
+          vmImage: $(vmImageName)
+      environment: prod
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: TerraformInstaller@0
+                displayName: Terraform Install
+                inputs:
+                  terraformVersion: "latest"
+              
+              - download: current
+                artifact: dropTerraform
+                displayName: Download Terraform artifact
+
+              - bash: |
+                  terraform init \
+                    -backend-config="resource_group_name=$RG_NAME" \
+                    -backend-config="storage_account_name=$STORAGE_ACCOUNT_NAME" \
+                    -backend-config="container_name=$CONTAINER_NAME" \
+                    -backend-config="key=root.terraform.tfstate"
+                workingDirectory: $(Pipeline.Workspace)/dropTerraform/
+                displayName: Terraform Init
+                env:
+                  ARM_ACCESS_KEY: $(backendConfigStorageAccountAccessKey)
+                  RG_NAME: $(backendConfigRgName)
+                  STORAGE_ACCOUNT_NAME: $(backendConfigStorageAccountName)
+                  CONTAINER_NAME: $(backendConfigContainer)
+
+              - bash: |
+                  terraform apply \
+                    -var environment="$ENVIRONMENT" \
+                    -var azure_resource_group="$RG_NAME" \
+                    -var azure_acronym="$AZURE_ACRONYM" \
+                    -var sql_username="$SQL_USERNAME" \
+                    -var sql_password="$SQL_PASSWORD" \
+                    --auto-approve
+                workingDirectory: $(Pipeline.Workspace)/dropTerraform/
+                displayName: Terraform Apply
+                env:
+                  ARM_ACCESS_KEY: $(backendConfigStorageAccountAccessKey)
+                  ARM_SUBSCRIPTION_ID: $(azurermSubscriptionId)
+                  ARM_CLIENT_ID: $(azurermClientId)
+                  ARM_CLIENT_SECRET: $(azurermClientSecret)
+                  ARM_TENANT_ID: $(azurermTenantId)
+                  ENVIRONMENT: $(environment)
+                  RG_NAME: $(azureResourceGroup)
+                  AZURE_ACRONYM: $(azureAcronym)
+                  SQL_USERNAME: $(sql_username)
+                  SQL_PASSWORD: $(sql_password)
+                  
+              - download: current
+                artifact: drop
+                displayName: Download Web app artifact
+
+              - task: AzureRmWebAppDeployment@4
+                inputs:
+                  ConnectionType: 'AzureRM'
+                  azureSubscription: $(serviceConnectionName) # Azure Resource Manager connection created during pipeline creation
+                  appType: 'webApp'
+                  WebAppName: $(webAppName)
+                  package: "$(Pipeline.Workspace)/drop/$(projectToDeploy).zip"

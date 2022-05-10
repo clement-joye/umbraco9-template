@@ -1,0 +1,65 @@
+trigger: none
+
+variables:
+  vmImageName: "windows-latest"
+  workingDirectory: "$(System.DefaultWorkingDirectory)"
+
+stages:
+  - stage: 'Dispose'
+    condition: succeeded()
+    jobs:
+    - deployment: Dispose
+      pool:
+          vmImage: $(vmImageName)
+      environment: prod
+      strategy:
+        runOnce:
+          deploy:
+            steps:
+              - task: PublishPipelineArtifact@1
+                displayName: Publish Terraform Pipeline Artifact
+                inputs:
+                  path: Terraform
+                  artifactName: dropTerraform
+              - task: TerraformInstaller@0
+                displayName: Terraform Install
+                inputs:
+                  terraformVersion: "latest"
+              - download: current
+                artifact: dropTerraform
+                displayName: Download Terraform artifact
+              - bash: |
+                  terraform init \
+                    -backend-config="resource_group_name=$RG_NAME" \
+                    -backend-config="storage_account_name=$STORAGE_ACCOUNT_NAME" \
+                    -backend-config="container_name=$CONTAINER_NAME" \
+                    -backend-config="key=root.terraform.tfstate"
+                workingDirectory: $(Pipeline.Workspace)/dropTerraform/
+                displayName: Terraform Init
+                env:
+                  ARM_ACCESS_KEY: $(backendConfigStorageAccountAccessKey)
+                  RG_NAME: $(backendConfigRgName)
+                  STORAGE_ACCOUNT_NAME: $(backendConfigStorageAccountName)
+                  CONTAINER_NAME: $(backendConfigContainer)
+              - bash: |
+                  terraform destroy \
+                    -var environment="$ENVIRONMENT" \
+                    -var azure_resource_group="$RG_NAME" \
+                    -var azure_acronym="$AZURE_ACRONYM" \
+                    -var sql_username="$SQL_USERNAME" \
+                    -var sql_password="$SQL_PASSWORD" \
+                    --auto-approve
+                workingDirectory: $(Pipeline.Workspace)/dropTerraform/
+                displayName: Terraform Destroy
+                env:
+                  ARM_ACCESS_KEY: $(backendConfigStorageAccountAccessKey)
+                  ARM_SUBSCRIPTION_ID: $(azurermSubscriptionId)
+                  ARM_CLIENT_ID: $(azurermClientId)
+                  ARM_CLIENT_SECRET: $(azurermClientSecret)
+                  ARM_TENANT_ID: $(azurermTenantId)
+                  ENVIRONMENT: $(environment)
+                  RG_NAME: $(azureResourceGroup)
+                  AZURE_ACRONYM: $(azureAcronym)
+                  SQL_USERNAME: $(sql_username)
+                  SQL_PASSWORD: $(sql_password)
+                  
