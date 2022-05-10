@@ -43,6 +43,7 @@ namespace Umbraco9_Template.Web
                 .AddBackOffice()
                 .AddWebsite()
                 .AddComposers()
+                .AddAzureBlobMediaFileSystem()
                 .Build();
 #pragma warning restore IDE0022 // Use expression body for methods
 
@@ -67,6 +68,7 @@ namespace Umbraco9_Template.Web
                 {
                     u.UseBackOffice();
                     u.UseWebsite();
+                    u.UseAzureBlobMediaFileSystem();
                 })
                 .WithEndpoints(u =>
                 {
