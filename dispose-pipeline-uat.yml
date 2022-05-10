@@ -5,10 +5,22 @@ variables:
   workingDirectory: "$(System.DefaultWorkingDirectory)"
 
 stages:
+  - stage: Build
+    displayName: Publish
+    jobs:
+    - job: Build
+      pool:
+        vmImage: $(vmImageName)
+      steps:
+      - task: PublishPipelineArtifact@1
+        displayName: Publish Terraform Pipeline Artifact
+        inputs:
+          path: Terraform
+          artifactName: dropTerraform
   - stage: 'Dispose'
     condition: succeeded()
     jobs:
-    - deployment: Dispose
+    - deployment: Deploy
       pool:
           vmImage: $(vmImageName)
       environment: prod
@@ -16,11 +28,6 @@ stages:
         runOnce:
           deploy:
             steps:
-              - task: PublishPipelineArtifact@1
-                displayName: Publish Terraform Pipeline Artifact
-                inputs:
-                  path: Terraform
-                  artifactName: dropTerraform
               - task: TerraformInstaller@0
                 displayName: Terraform Install
                 inputs:
