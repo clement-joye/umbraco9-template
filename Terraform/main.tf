@@ -76,6 +76,7 @@ resource "azurerm_app_service" "app" {
 
   app_settings = {
     "Umbraco:Storage:AzureBlob:Media:ConnectionString" = "DefaultEndpointsProtocol=https;AccountName=${azurerm_storage_account.sa.name};AccountKey=${azurerm_storage_account.sa.secondary_access_key};EndpointSuffix=core.windows.net" 
+    "Umbraco:Storage:AzureBlob:Media:ContainerName" = "umbraco"
   }
 
   connection_string {
