@@ -9,7 +9,7 @@ variables:
   solution: '**/*.sln'
   buildPlatform: 'Any CPU'
   buildConfiguration: 'Release'
-  vmImageName: "ubuntu-latest"
+  vmImageName: "windows-latest"
   workingDirectory: "$(System.DefaultWorkingDirectory)"
 
 stages:
