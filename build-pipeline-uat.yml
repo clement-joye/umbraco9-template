@@ -24,9 +24,6 @@ stages:
       steps:
       - task: NuGetToolInstaller@1
 
-      - task: NuGetCommand@2
-        inputs:
-          restoreSolution: '$(solution)'
       - task: DotNetCoreCLI@2
         displayName: "Build Web app"
         inputs:
@@ -118,4 +115,4 @@ stages:
                   azureSubscription: $(serviceConnectionName) # Azure Resource Manager connection created during pipeline creation
                   appType: 'webApp'
                   WebAppName: $(webAppName)
-                  package: "$(Pipeline.Workspace)/drop/$(projectToDeploy).zip"
+                  package: "$(Pipeline.Workspace)/drop/$(projectToDeploy).$(Build.BuildId).zip"

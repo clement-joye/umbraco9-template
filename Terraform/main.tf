@@ -61,7 +61,7 @@ resource "azurerm_app_service_plan" "plan" {
   name                = "asp-${var.azure_acronym}-${var.environment}"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
-  kind                = "Windows"
+  kind                = "Linux"
   reserved            = "false"
 
   sku {
