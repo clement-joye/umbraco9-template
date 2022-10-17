@@ -116,3 +116,5 @@ stages:
                   appType: 'webApp'
                   WebAppName: $(webAppName)
                   package: "$(Pipeline.Workspace)/drop/$(projectToDeploy).$(Build.BuildId).zip"
+                  enableCustomDeployment: true
+                  DeploymentType: 'webDeploy'
